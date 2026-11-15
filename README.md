@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Medical Management System
 
 Initial microservice structure based on the project documentation. This repository contains eight Spring Boot applications in one Maven reactor.
@@ -34,6 +35,9 @@ Only the gateway port is published by Compose. Eureka and the domain services co
 
 This initializes the applications, dependencies, discovery, gateway route definitions, database configuration, health endpoints, and container builds. The REST controllers, entities, business logic, JWT validation, authorization, and Feign clients described in the project documentation are the next implementation steps. The gateway currently routes requests but does not secure them, so keep this scaffold in a development environment.
 =======
+=======
+ 
+>>>>>>> d576dafffcaf2bc35558dad8cd61b81a268a4a9a
 <div align="center">
 
 # 🏥 MediCare Connect
