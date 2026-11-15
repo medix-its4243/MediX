@@ -2,7 +2,7 @@ spring:
   application:
     name: doctor-service
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/doctor_db
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/doctor_db
     username: ${DB_USERNAME:medical}
     password: ${DB_PASSWORD:medical}
   jpa:

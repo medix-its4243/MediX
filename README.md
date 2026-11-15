@@ -26,7 +26,7 @@ mvn clean package
 docker compose up --build
 ```
 
-The gateway is available at `http://localhost:8080`. Check `http://localhost:8080/actuator/health` after startup. The MySQL initialization script creates six isolated databases and a local development account (`medical` / `medical`). The MySQL root password in Compose is also for local development. Change these credentials before any shared deployment.
+The gateway is available at `http://localhost:8080`. Check `http://localhost:8080/actuator/health` after startup. The PostgreSQL initialization script creates six isolated databases and a local development account (`medical` / `medical`). The PostgreSQL superuser password in Compose is also for local development. Change these credentials before any shared deployment.
 
 Only the gateway port is published by Compose. Eureka and the domain services communicate on the internal Docker network. For local runs outside Docker, set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `EUREKA_URL` as needed, then start Eureka first, followed by the services and gateway.
 
@@ -43,7 +43,7 @@ This initializes the applications, dependencies, discovery, gateway route defini
 ![Java](https://img.shields.io/badge/Java-17-orange?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3-6DB33F?logo=springboot&logoColor=white)
 ![Spring Cloud](https://img.shields.io/badge/Spring_Cloud-2023.0-6DB33F?logo=spring&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
 ![JWT](https://img.shields.io/badge/Auth-JWT-000000?logo=jsonwebtokens&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue)
@@ -156,7 +156,7 @@ Many clinics still depend on paper files, phone bookings and spreadsheets. That 
 | Framework | Spring Boot 3.x, Spring Web, Spring Data JPA, Bean Validation |
 | Cloud | Spring Cloud Gateway, Netflix Eureka, OpenFeign, LoadBalancer |
 | Security | Spring Security, JJWT, BCrypt |
-| Database | MySQL 8 |
+| Database | PostgreSQL 16 |
 | Docs | springdoc-openapi (Swagger UI) |
 | Testing | JUnit 5, Mockito |
 | DevOps | Docker, Docker Compose, Maven multi-module build |
@@ -206,7 +206,7 @@ Many clinics still depend on paper files, phone bookings and spreadsheets. That 
 
 - Java 17+
 - Maven 3.9+
-- MySQL 8 (or Docker)
+- PostgreSQL 16 (or Docker)
 - Git
 
 ### 1. Clone the repository
@@ -220,8 +220,8 @@ cd medicare-connect
 
 ```bash
 export JWT_SECRET=change-this-to-a-long-random-secret-of-at-least-32-chars
-export DB_USERNAME=root
-export DB_PASSWORD=root
+export DB_USERNAME=medical
+export DB_PASSWORD=medical
 ```
 
 ### 3. Build all modules
@@ -253,7 +253,7 @@ Open the Eureka dashboard at **http://localhost:8761** and confirm every service
 docker compose up --build
 ```
 
-This starts MySQL (with all six databases), Eureka, every service and the gateway. Only port `8080` is published.
+This starts PostgreSQL (with all six databases), Eureka, every service and the gateway. Only port `8080` is published.
 
 ```bash
 docker compose down        # stop everything
