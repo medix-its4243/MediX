@@ -43,6 +43,23 @@ Booking checks the patient and doctor through Eureka and Feign, checks the docto
 
 The record service expects gateway supplied `X-User-Role` and `X-User-Id` headers. Only a `DOCTOR` role can create records; a `PATIENT` role can read records linked to its patient profile. The gateway and auth service do **not yet** validate JWTs or establish trusted user headers, so these checks are not a complete security boundary. The doctor service also has no `/doctors/{id}` API yet, so end-to-end booking needs that service to be implemented. Keep this stack in a development environment until those dependencies are finished.
 
+## Service package layout
+
+Each implemented service keeps its Spring Boot application class in the root package and groups its other Java classes by responsibility:
+
+```text
+src/main/java/com/medical/<service>/
+├── controller/   REST endpoints
+├── service/      business logic
+├── repository/   Spring Data JPA repositories
+├── entity/       JPA entities and enums
+├── dto/          request and response objects
+├── exception/    API exception handler
+└── client/       Feign clients (appointment and medical record services)
+```
+
+Configuration classes can be added under `config/` when needed.
+
 ## Tests
 
 ```sh
