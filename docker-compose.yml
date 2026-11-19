@@ -1,0 +1,102 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: local-postgres-password
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  eureka-server:
+    build:
+      context: .
+      dockerfile: eureka-server/Dockerfile
+  api-gateway:
+    build:
+      context: .
+      dockerfile: api-gateway/Dockerfile
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    depends_on:
+      eureka-server:
+        condition: service_started
+    ports:
+      - "8080:8080"
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      DB_HOST: postgres
+    depends_on:
+      eureka-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+  patient-service:
+    build:
+      context: .
+      dockerfile: patient-service/Dockerfile
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      DB_HOST: postgres
+    depends_on:
+      eureka-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+  doctor-service:
+    build:
+      context: .
+      dockerfile: doctor-service/Dockerfile
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      DB_HOST: postgres
+    depends_on:
+      eureka-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+  appointment-service:
+    build:
+      context: .
+      dockerfile: appointment-service/Dockerfile
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      DB_HOST: postgres
+    depends_on:
+      eureka-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+  medical-record-service:
+    build:
+      context: .
+      dockerfile: medical-record-service/Dockerfile
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      DB_HOST: postgres
+    depends_on:
+      eureka-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+  billing-service:
+    build:
+      context: .
+      dockerfile: billing-service/Dockerfile
+    environment:
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      DB_HOST: postgres
+    depends_on:
+      eureka-server:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+volumes:
+  postgres-data:
