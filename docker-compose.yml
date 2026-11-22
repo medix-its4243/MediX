@@ -148,11 +148,14 @@ services:
     environment:
       EUREKA_URL: http://eureka-server:8761/eureka/
       DB_HOST: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
         condition: service_started
       postgres:
+        condition: service_healthy
+      kafka:
         condition: service_healthy
       config-server:
         condition: service_healthy
