@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
@@ -10,17 +12,6 @@ spring:
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
   application:
     name: medical-record-service
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/record_db
-    username: ${DB_USERNAME:medical}
-    password: ${DB_PASSWORD:medical}
-  sql:
-    init:
-      mode: always
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
 server:
   port: ${PORT:8085}
 management:

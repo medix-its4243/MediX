@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    username: ${DB_USERNAME:medical}
+    password: ${DB_PASSWORD:medical}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false

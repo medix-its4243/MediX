@@ -1,14 +1,8 @@
 spring:
+  config:
+    import: "configserver:${CONFIG_SERVER_URL:http://localhost:8888}"
   application:
     name: billing-service
-  datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/billing_db
-    username: ${DB_USERNAME:medical}
-    password: ${DB_PASSWORD:medical}
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    open-in-view: false
 server:
   port: ${PORT:8086}
 management:
