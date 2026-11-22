@@ -22,6 +22,13 @@ public class BillingService {
   Invoice i=new Invoice();i.setAppointmentId(a.id());i.setPatientId(a.patientId());i.setDoctorId(a.doctorId());i.setAmount(fee);
   return InvoiceResponse.from(invoices.saveAndFlush(i));
  }
+ @Transactional(readOnly=true)
+ public InvoiceResponse get(Long id,String role,Long userId){
+  if(!"ADMIN".equals(role) && !"STAFF".equals(role) && !("PATIENT".equals(role) && userId!=null)) throw error(HttpStatus.FORBIDDEN,"Invoice access denied");
+  Invoice i=invoices.findById(id).orElseThrow(()->error(HttpStatus.NOT_FOUND,"Invoice not found"));
+  if("PATIENT".equals(role)) {var p=patients.get(i.getPatientId());if(p==null || !userId.equals(p.userId())) throw error(HttpStatus.FORBIDDEN,"Invoice access denied");}
+  return InvoiceResponse.from(i);
+ }
  private void manage(String role){if(!"ADMIN".equals(role)&&!"STAFF".equals(role)) throw error(HttpStatus.FORBIDDEN,"Only ADMIN and STAFF can manage invoices");}
  private ResponseStatusException error(HttpStatus status,String message){return new ResponseStatusException(status,message);}
 }
