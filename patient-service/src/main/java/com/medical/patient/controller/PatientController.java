@@ -13,9 +13,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/patients")
@@ -24,15 +26,46 @@ public class PatientController {
     public PatientController(PatientService service) { this.service = service; }
 
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
-    public PatientResponse create(@Valid @RequestBody PatientRequest request) { return service.create(request); }
+    public PatientResponse create(@Valid @RequestBody PatientRequest request,
+                                  @RequestHeader(value = "X-User-Role", required = false) String role,
+                                  @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        checkAccess(role, userId, request.userId());
+        return service.create(request);
+    }
     @GetMapping
-    public List<PatientResponse> list() { return service.list(); }
+    public List<PatientResponse> list(@RequestHeader(value = "X-User-Role", required = false) String role,
+                                      @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        if ("PATIENT".equals(role) && userId != null) return service.forUser(userId);
+        checkAccess(role, userId, null);
+        return service.list();
+    }
     @GetMapping("/{id}")
-    public PatientResponse get(@PathVariable Long id) { return service.get(id); }
+    public PatientResponse get(@PathVariable Long id,
+                               @RequestHeader(value = "X-User-Role", required = false) String role,
+                               @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        PatientResponse patient = service.get(id);
+        checkAccess(role, userId, patient.userId());
+        return patient;
+    }
     @PutMapping("/{id}")
-    public PatientResponse update(@PathVariable Long id, @Valid @RequestBody PatientRequest request) {
+    public PatientResponse update(@PathVariable Long id, @Valid @RequestBody PatientRequest request,
+                                  @RequestHeader(value = "X-User-Role", required = false) String role,
+                                  @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        checkAccess(role, userId, service.get(id).userId());
+        checkAccess(role, userId, request.userId());
         return service.update(id, request);
     }
     @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) { service.delete(id); }
+    public void delete(@PathVariable Long id,
+                       @RequestHeader(value = "X-User-Role", required = false) String role,
+                       @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        checkAccess(role, userId, service.get(id).userId());
+        service.delete(id);
+    }
+
+    private static void checkAccess(String role, Long userId, Long ownerId) {
+        if ("ADMIN".equals(role) || "STAFF".equals(role)) return;
+        if ("PATIENT".equals(role) && userId != null && userId.equals(ownerId)) return;
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access to this patient is forbidden");
+    }
 }

@@ -43,15 +43,23 @@ services:
     build:
       context: .
       dockerfile: eureka-server/Dockerfile
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    ports:
+      - "8761:8761"
   api-gateway:
     build:
       context: .
       dockerfile: api-gateway/Dockerfile
     environment:
       EUREKA_URL: http://eureka-server:8761/eureka/
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET_required_minimum_32_characters}
     depends_on:
       eureka-server:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "8080:8080"
   auth-service:
@@ -62,9 +70,12 @@ services:
       EUREKA_URL: http://eureka-server:8761/eureka/
       DB_HOST: postgres
       CONFIG_SERVER_URL: http://config-server:8888
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET_required_minimum_32_characters}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:-}
     depends_on:
       eureka-server:
-        condition: service_started
+        condition: service_healthy
       postgres:
         condition: service_healthy
       config-server:
@@ -80,7 +91,7 @@ services:
       CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
-        condition: service_started
+        condition: service_healthy
       postgres:
         condition: service_healthy
       kafka:
@@ -98,7 +109,7 @@ services:
       CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
-        condition: service_started
+        condition: service_healthy
       postgres:
         condition: service_healthy
       kafka:
@@ -116,7 +127,7 @@ services:
       CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
-        condition: service_started
+        condition: service_healthy
       postgres:
         condition: service_healthy
       kafka:
@@ -134,7 +145,7 @@ services:
       CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
-        condition: service_started
+        condition: service_healthy
       postgres:
         condition: service_healthy
       kafka:
@@ -152,7 +163,7 @@ services:
       CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
-        condition: service_started
+        condition: service_healthy
       postgres:
         condition: service_healthy
       kafka:
