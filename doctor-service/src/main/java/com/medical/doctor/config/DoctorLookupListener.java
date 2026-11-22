@@ -29,6 +29,9 @@ public class DoctorLookupListener {
         reply.put("correlationId", request.path("correlationId").asText());
         doctors.findById(id).ifPresentOrElse(doctor -> {
             reply.put("found", true);
+            reply.put("id", doctor.getId());
+            reply.put("userId", doctor.getUserId());
+            reply.put("consultationFee", doctor.getConsultationFee());
             reply.put("availableDays", doctor.getAvailableDays());
         }, () -> reply.put("found", false));
         kafka.send(request.path("replyTopic").asText(), Long.toString(id), json.writeValueAsString(reply))

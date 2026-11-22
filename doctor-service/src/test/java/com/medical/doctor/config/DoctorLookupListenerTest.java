@@ -24,11 +24,13 @@ class DoctorLookupListenerTest {
     @Test
     void repliesWithDoctorAvailabilityAndCorrelationId() throws Exception {
         Doctor doctor = new Doctor();
+        doctor.setConsultationFee(new java.math.BigDecimal("2500.00"));
         doctor.setAvailableDays("MON,WED");
         when(doctors.findById(3L)).thenReturn(Optional.of(doctor));
         when(kafka.send(anyString(), anyString(), anyString())).thenAnswer(call -> {
             var reply = json.readTree((String) call.getArgument(2));
             assertTrue(reply.path("found").asBoolean());
+            assertTrue(new java.math.BigDecimal("2500.00").compareTo(reply.path("consultationFee").decimalValue()) == 0);
             assertTrue("MON,WED".equals(reply.path("availableDays").asText()));
             assertTrue("abc".equals(reply.path("correlationId").asText()));
             return CompletableFuture.completedFuture(null);
