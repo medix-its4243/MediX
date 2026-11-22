@@ -33,6 +33,11 @@ public class PatientService {
     }
 
     @Transactional(readOnly = true)
+    public List<PatientResponse> forUser(Long userId) {
+        return repository.findByUserId(userId).stream().map(PatientResponse::from).toList();
+    }
+
+    @Transactional(readOnly = true)
     public PatientResponse get(Long id) { return PatientResponse.from(find(id)); }
 
     @Transactional

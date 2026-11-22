@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,7 +23,9 @@ public class DoctorController {
     public DoctorController(DoctorRepository doctors) { this.doctors = doctors; }
 
     @PostMapping @ResponseStatus(HttpStatus.CREATED)
-    public DoctorResponse create(@Valid @RequestBody DoctorRequest request) {
+    public DoctorResponse create(@Valid @RequestBody DoctorRequest request,
+                                 @RequestHeader(value = "X-User-Role", required = false) String role) {
+        if (!"ADMIN".equals(role)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can create doctors");
         Doctor doctor = new Doctor();
         doctor.setUserId(request.userId());
         doctor.setName(request.name().trim());
