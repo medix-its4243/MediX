@@ -5,9 +5,9 @@ Spring Boot microservice project based on the Medical Management System project 
 | Module | Port | Database | Current state |
 | --- | ---: | --- | --- |
 | `config-server` | 8888 | — | Centralized service configuration |
-| `eureka-server` | 8761 | — | Service discovery |
-| `api-gateway` | 8080 | — | Routes requests |
-| `auth-service` | 8081 | `auth_db` | Startup scaffold |
+| `eureka-server` | 8761 | — | Service registry and health endpoint |
+| `api-gateway` | 8080 | — | JWT verification, role rules, routing, CORS |
+| `auth-service` | 8081 | `auth_db` | Registration, login, refresh, and user management |
 | `patient-service` | 8082 | `patient_db` | Patient CRUD |
 | `doctor-service` | 8083 | `doctor_db` | Create and fetch doctor profiles for booking |
 | `appointment-service` | 8084 | `appointment_db` | Booking, lookup, cancel, complete |
@@ -18,12 +18,21 @@ Spring Boot microservice project based on the Medical Management System project 
 
 Requirements: Java 21, Maven 3.9, PostgreSQL 16, and Kafka; or Docker and Docker Compose for the full stack.
 
+Set a signing secret of at least 32 UTF-8 bytes before starting Auth and the gateway. Both services must use the same `JWT_SECRET`. To create the first admin user, also set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` (at least eight characters). For PowerShell:
+
+```powershell
+$env:JWT_SECRET = "replace-with-a-random-secret-of-at-least-32-bytes"
+$env:BOOTSTRAP_ADMIN_EMAIL = "admin@example.com"
+$env:BOOTSTRAP_ADMIN_PASSWORD = "replace-with-a-strong-password"
+docker compose up --build
+```
+
 ```sh
 mvn test
 docker compose up --build
 ```
 
-The gateway is available at `http://localhost:8080`. The PostgreSQL initialization script creates the six databases and the local `medical` account. The patient, doctor, appointment, and medical record services create their own tables from `schema.sql` on startup and then validate the JPA mappings. For local runs outside Docker, set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `EUREKA_URL` as needed. Start PostgreSQL, the Config Server, and Eureka before the domain services, then start the gateway.
+The gateway is available at `http://localhost:8080`, and the Eureka dashboard at `http://localhost:8761`. The PostgreSQL initialization script creates the six databases and the local `medical` account. Auth, patient, doctor, appointment, and medical record services create their own tables from `schema.sql` on startup and then validate the JPA mappings. For local runs outside Docker, set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `EUREKA_URL` as needed. Start PostgreSQL, the Config Server, and Eureka before the domain services, then start the gateway.
 
 Kafka is available at `localhost:29092` from the host and `kafka:9092` inside Compose. Set `KAFKA_BOOTSTRAP_SERVERS` for local service runs (default `localhost:9092`). Start Kafka before the patient, doctor, appointment, and medical record services.
 
@@ -43,6 +52,9 @@ Then inspect a service's configuration at `http://localhost:8888/patient-service
 
 | Service | Method and path | Action |
 | --- | --- | --- |
+| Auth | `POST /auth/register`, `POST /auth/login` | Register a patient or obtain tokens |
+| Auth | `POST /auth/refresh`, `GET /auth/me` | Refresh tokens or read current user |
+| Auth | `POST /auth/users` | Admin creates a user with a chosen role |
 | Patient | `POST /patients` | Create profile |
 | Patient | `GET /patients`, `GET /patients/{id}` | List or fetch profiles |
 | Patient | `PUT /patients/{id}`, `DELETE /patients/{id}` | Update or delete profile |
@@ -59,7 +71,11 @@ Booking checks the patient and doctor through Kafka request and reply messages, 
 
 Kafka topics are `patient.lookup.requests`, `doctor.lookup.requests`, `appointment.lookup.requests`, `appointment.lookup.replies`, and `record.lookup.replies`. Request messages contain `correlationId`, `replyTopic`, and `id`; replies echo `correlationId` and include `found` plus the fields needed by the caller. The request and reply topics are created by the services on startup.
 
-The record service expects gateway supplied `X-User-Role` and `X-User-Id` headers. Only a `DOCTOR` role can create records; a `PATIENT` role can read records linked to its patient profile. The gateway and auth service do **not yet** validate JWTs or establish trusted user headers, so these checks are not a complete security boundary. Keep this stack in a development environment until those dependencies are finished.
+## Authentication and access
+
+Public registration creates a `PATIENT` user. Admins can create `ADMIN`, `DOCTOR`, `PATIENT`, or `STAFF` users through `POST /auth/users`. Passwords are stored as BCrypt hashes. Login returns a one-hour access token and a seven-day refresh token; a refresh token can request a new pair at `POST /auth/refresh`. Refresh tokens are signed but are not stored or revoked, so issuing a new pair does not invalidate an earlier refresh token.
+
+The gateway verifies JWT signature, issuer, expiry, and token type, then applies role rules to routes. It removes incoming `X-User-Id` and `X-User-Role` headers and replaces them with verified token claims. Patient and appointment services check that patients access their own data; the record service permits creation by doctors and limits patient reads to their own records. Gateway, Eureka, and Kafka ports are published by Compose; downstream services trust gateway headers on the private Docker network. Directly exposing a downstream service would bypass that trust boundary.
 
 ## Service package layout
 
@@ -84,4 +100,4 @@ Kafka listeners and topic configuration are under `config/`.
 mvn clean test
 ```
 
-The tests cover patient profile operations, booking conflicts and status rules, and medical record reference and access checks. A full Kafka, database, and gateway integration run is still needed.
+The tests cover patient profile operations and ownership, appointment booking and access rules, medical record reference and access checks, Auth token rules, gateway authorization and identity headers, and Eureka health. A full Kafka, database, and gateway integration run is still needed.
