@@ -30,6 +30,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+  config-server:
+    build:
+      context: .
+      dockerfile: config-server/Dockerfile
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
   eureka-server:
     build:
       context: .
@@ -52,10 +61,13 @@ services:
     environment:
       EUREKA_URL: http://eureka-server:8761/eureka/
       DB_HOST: postgres
+      CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
         condition: service_started
       postgres:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
   patient-service:
     build:
@@ -65,12 +77,15 @@ services:
       EUREKA_URL: http://eureka-server:8761/eureka/
       DB_HOST: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
         condition: service_started
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
   doctor-service:
     build:
@@ -80,12 +95,15 @@ services:
       EUREKA_URL: http://eureka-server:8761/eureka/
       DB_HOST: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
         condition: service_started
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
   appointment-service:
     build:
@@ -95,12 +113,15 @@ services:
       EUREKA_URL: http://eureka-server:8761/eureka/
       DB_HOST: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
         condition: service_started
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
   medical-record-service:
     build:
@@ -110,12 +131,15 @@ services:
       EUREKA_URL: http://eureka-server:8761/eureka/
       DB_HOST: postgres
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
         condition: service_started
       postgres:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
   billing-service:
     build:
@@ -124,10 +148,13 @@ services:
     environment:
       EUREKA_URL: http://eureka-server:8761/eureka/
       DB_HOST: postgres
+      CONFIG_SERVER_URL: http://config-server:8888
     depends_on:
       eureka-server:
         condition: service_started
       postgres:
+        condition: service_healthy
+      config-server:
         condition: service_healthy
 volumes:
   postgres-data:

@@ -4,6 +4,7 @@ Spring Boot microservice project based on the Medical Management System project 
 
 | Module | Port | Database | Current state |
 | --- | ---: | --- | --- |
+| `config-server` | 8888 | — | Centralized service configuration |
 | `eureka-server` | 8761 | — | Service discovery |
 | `api-gateway` | 8080 | — | Routes requests |
 | `auth-service` | 8081 | `auth_db` | Startup scaffold |
@@ -22,9 +23,21 @@ mvn test
 docker compose up --build
 ```
 
-The gateway is available at `http://localhost:8080`. The PostgreSQL initialization script creates the six databases and the local `medical` account. The patient, doctor, appointment, and medical record services create their own tables from `schema.sql` on startup and then validate the JPA mappings. For local runs outside Docker, set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `EUREKA_URL` as needed. Start PostgreSQL and Eureka before the domain services, then start the gateway.
+The gateway is available at `http://localhost:8080`. The PostgreSQL initialization script creates the six databases and the local `medical` account. The patient, doctor, appointment, and medical record services create their own tables from `schema.sql` on startup and then validate the JPA mappings. For local runs outside Docker, set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `EUREKA_URL` as needed. Start PostgreSQL, the Config Server, and Eureka before the domain services, then start the gateway.
 
 Kafka is available at `localhost:29092` from the host and `kafka:9092` inside Compose. Set `KAFKA_BOOTSTRAP_SERVERS` for local service runs (default `localhost:9092`). Start Kafka before the patient, doctor, appointment, and medical record services.
+
+## Centralized configuration
+
+The Config Server uses Spring Cloud Config's native backend. Its configuration files are in `config-server/src/main/resources/config-repo/`: `application.yml` holds shared PostgreSQL credential placeholders and JPA settings, and each database service has its own file with its database URL. The six database services import this configuration at startup and fail to start if the Config Server is unavailable. `CONFIG_SERVER_URL` defaults to `http://localhost:8888`; Compose sets it to `http://config-server:8888` and waits for the health check. Changes to these packaged files require rebuilding and restarting the Config Server and restarting its clients.
+
+For a local run, start the server first:
+
+```sh
+mvn -pl config-server spring-boot:run
+```
+
+Then inspect a service's configuration at `http://localhost:8888/patient-service/default`. Set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, and `DB_PASSWORD` in each service's environment to override the local development defaults. The Config Server is only reachable inside the Compose network; its HTTP response includes database configuration, so keep it on that trusted network.
 
 ## Implemented endpoints
 
@@ -68,7 +81,7 @@ Kafka listeners and topic configuration are under `config/`.
 ## Tests
 
 ```sh
-mvn -pl patient-service,appointment-service,medical-record-service -am test
+mvn clean test
 ```
 
 The tests cover patient profile operations, booking conflicts and status rules, and medical record reference and access checks. A full Kafka, database, and gateway integration run is still needed.
