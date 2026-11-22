@@ -9,10 +9,10 @@ Spring Boot microservice project based on the Medical Management System project 
 | `api-gateway` | 8080 | — | Routes requests |
 | `auth-service` | 8081 | `auth_db` | Startup scaffold |
 | `patient-service` | 8082 | `patient_db` | Patient CRUD |
-| `doctor-service` | 8083 | `doctor_db` | Create and fetch doctor profiles for booking |
+| `doctor-service` | 8083 | `doctor_db` | Doctor CRUD, specialization search, availability and fees |
 | `appointment-service` | 8084 | `appointment_db` | Booking, lookup, cancel, complete |
 | `medical-record-service` | 8085 | `record_db` | Create and view records |
-| `billing-service` | 8086 | `billing_db` | Startup scaffold |
+| `billing-service` | 8086 | `billing_db` | Invoice generation, ownership checks and simulated payments |
 
 ## Build and run
 
@@ -46,7 +46,12 @@ Then inspect a service's configuration at `http://localhost:8888/patient-service
 | Patient | `POST /patients` | Create profile |
 | Patient | `GET /patients`, `GET /patients/{id}` | List or fetch profiles |
 | Patient | `PUT /patients/{id}`, `DELETE /patients/{id}` | Update or delete profile |
-| Doctor | `POST /doctors`, `GET /doctors/{id}` | Create or fetch a doctor for booking |
+| Doctor | `POST /doctors`, `GET /doctors`, `GET /doctors/{id}` | Create, list or fetch doctors |
+| Doctor | `PUT /doctors/{id}`, `DELETE /doctors/{id}` | ADMIN updates or deletes a doctor |
+| Doctor | `GET /doctors/search?specialization=cardio` | Case-insensitive partial specialization search |
+| Billing | `POST /invoices` | ADMIN or STAFF creates invoice for a completed appointment |
+| Billing | `GET /invoices/{id}` | ADMIN, STAFF or owning PATIENT reads an invoice |
+| Billing | `POST /invoices/{id}/pay` | ADMIN or STAFF records simulated payment |
 | Appointment | `POST /appointments` | Book a doctor and time slot |
 | Appointment | `GET /appointments/{id}`, `GET /appointments/patient/{id}` | Fetch appointment or patient history |
 | Appointment | `PUT /appointments/{id}/cancel`, `PUT /appointments/{id}/complete` | Change a booked appointment's status |
@@ -85,3 +90,31 @@ mvn clean test
 ```
 
 The tests cover patient profile operations, booking conflicts and status rules, and medical record reference and access checks. A full Kafka, database, and gateway integration run is still needed.
+
+## Doctor and billing implementation
+
+The supplied `Medical_Management_System_Project_Plan (1).pdf` defines the endpoint and role requirements. This implementation retains the repository's Java 21, PostgreSQL 16 and Kafka request/reply conventions in place of the PDF's Java 17, MySQL and Feign examples. The referenced original project brief was not supplied separately.
+
+Doctor writes require `X-User-Role: ADMIN`. A doctor request includes `userId`, `name`, `specialization`, optional `phone`, `consultationFee` and `availableDays`. Fees are nonnegative with up to ten integer digits and two decimal places. Days are comma-separated full or abbreviated weekday names, for example `MONDAY,WED,FRIDAY`; the service normalizes these to `MON,WED,FRI` for booking compatibility and removes duplicates. Zero permits free consultations. Doctor profile deletion does not cascade into other service databases; existing invoices retain their fee and IDs.
+
+Invoice creation accepts only `{"appointmentId":1}`. Billing looks up the completed appointment, then obtains its doctor's consultation fee through Kafka. It stores the fee as an immutable invoice amount with status `UNPAID`. One invoice is allowed per appointment, enforced by a database unique constraint even for concurrent requests. `POST /invoices/{id}/pay` needs no body and changes the status to `PAID`, recording `paidAt`; repeated payment returns 409. This records a simulated payment and does not charge a payment provider.
+
+Ownership uses Billing-to-Patient Kafka lookup: the invoice stores the appointment's patient profile ID; Billing resolves that profile's `userId` and compares it with `X-User-Id`. Patient profile IDs and authenticated user IDs are not interchangeable. PATIENT cannot create invoices or record payments. ADMIN and STAFF can read all invoices. Missing or unrecognized roles are denied. Missing references return 400, missing resources 404, duplicate invoices or invalid state transitions 409, and lookup outages 503. Errors contain `timestamp`, `status`, `error`, `message`, and `path`.
+
+Billing uses `billing.lookup.replies` plus the existing patient, doctor and appointment request topics. Doctor replies now include `id`, `userId`, `availableDays` and numeric `consultationFee`. Existing appointment lookup consumers remain compatible. Billing initializes `invoices` via `schema.sql` and validates JPA mappings. Compose supplies the Kafka bootstrap address and waits for broker health.
+
+These services follow the existing header-based access convention. Auth and the gateway still need JWT validation and trusted header handling before these checks provide a security boundary. Use synthetic data in this development stack. Existing Dockerfiles, `/actuator/health`, `/v3/api-docs` and `/swagger-ui/index.html` remain available on each service's internal port; only gateway business routes are currently aggregated.
+
+Run `mvn test` at the repository root. New service tests cover doctor normalization, invalid days, ADMIN write restrictions, search, missing doctors, invoice fee snapshots, incomplete appointments, duplicate invoices, patient ownership, write restrictions, payment and missing invoices. Full PostgreSQL/Kafka/Compose validation remains a separate integration check.
+
+For a manual gateway smoke test after creating a patient and doctor, booking and completing the appointment:
+
+```sh
+curl -X POST http://localhost:8080/invoices -H 'Content-Type: application/json' -H 'X-User-Role: STAFF' -d '{"appointmentId":1}'
+curl http://localhost:8080/invoices/1 -H 'X-User-Role: PATIENT' -H 'X-User-Id: 10'
+curl -X POST http://localhost:8080/invoices/1/pay -H 'X-User-Role: STAFF'
+```
+
+Replace IDs with returned IDs and the linked patient's actual `userId`. Confirm an incomplete appointment and repeat payment return 409, another patient receives 403, and a PATIENT doctor write receives 403. The header examples exercise development checks and do not demonstrate JWT authentication.
+
+See [COMMIT_MESSAGES.md](COMMIT_MESSAGES.md) for 15 proposed conventional commit messages. No commits or authorship dates are created automatically.
