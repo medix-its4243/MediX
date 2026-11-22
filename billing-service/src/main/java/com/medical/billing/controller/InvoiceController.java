@@ -12,4 +12,6 @@ public class InvoiceController {
  public InvoiceResponse create(@Valid @RequestBody InvoiceRequest request,@RequestHeader(value="X-User-Role",required=false) String role){return billing.create(request,role);}
  @GetMapping("/{id}")
  public InvoiceResponse get(@PathVariable Long id,@RequestHeader(value="X-User-Role",required=false) String role,@RequestHeader(value="X-User-Id",required=false) Long userId){return billing.get(id,role,userId);}
+ @PostMapping("/{id}/pay")
+ public InvoiceResponse pay(@PathVariable Long id,@RequestHeader(value="X-User-Role",required=false) String role){return billing.pay(id,role);}
 }

@@ -29,6 +29,11 @@ public class BillingService {
   if("PATIENT".equals(role)) {var p=patients.get(i.getPatientId());if(p==null || !userId.equals(p.userId())) throw error(HttpStatus.FORBIDDEN,"Invoice access denied");}
   return InvoiceResponse.from(i);
  }
+ public InvoiceResponse pay(Long id,String role){
+  manage(role);Invoice i=invoices.findForPayment(id).orElseThrow(()->error(HttpStatus.NOT_FOUND,"Invoice not found"));
+  if(!"UNPAID".equals(i.getStatus())) throw error(HttpStatus.CONFLICT,"Invoice is already paid");
+  i.pay();return InvoiceResponse.from(invoices.saveAndFlush(i));
+ }
  private void manage(String role){if(!"ADMIN".equals(role)&&!"STAFF".equals(role)) throw error(HttpStatus.FORBIDDEN,"Only ADMIN and STAFF can manage invoices");}
  private ResponseStatusException error(HttpStatus status,String message){return new ResponseStatusException(status,message);}
 }
