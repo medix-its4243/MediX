@@ -15,4 +15,7 @@ public class DoctorController {
  @GetMapping public List<DoctorResponse> list() { return doctors.list(null); }
  @GetMapping("/search") public List<DoctorResponse> search(@RequestParam String specialization) { return doctors.list(specialization); }
  @GetMapping("/{id}") public DoctorResponse get(@PathVariable Long id) { return doctors.get(id); }
+ @PutMapping("/{id}") public DoctorResponse update(@PathVariable Long id,@Valid @RequestBody DoctorRequest request,@RequestHeader(value="X-User-Role",required=false) String role) { return doctors.update(id,request,role); }
+ @DeleteMapping("/{id}") @ResponseStatus(HttpStatus.NO_CONTENT)
+ public void delete(@PathVariable Long id,@RequestHeader(value="X-User-Role",required=false) String role) { doctors.delete(id,role); }
 }
