@@ -12,5 +12,7 @@ public class DoctorController {
  public DoctorController(DoctorService doctors) { this.doctors=doctors; }
  @PostMapping @ResponseStatus(HttpStatus.CREATED)
  public DoctorResponse create(@Valid @RequestBody DoctorRequest request,@RequestHeader(value="X-User-Role",required=false) String role) { return doctors.create(request,role); }
+ @GetMapping public List<DoctorResponse> list() { return doctors.list(null); }
+ @GetMapping("/search") public List<DoctorResponse> search(@RequestParam String specialization) { return doctors.list(specialization); }
  @GetMapping("/{id}") public DoctorResponse get(@PathVariable Long id) { return doctors.get(id); }
 }
