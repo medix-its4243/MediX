@@ -7,7 +7,6 @@ import com.medical.record.dto.RecordResponse;
 import com.medical.record.entity.MedicalRecord;
 import com.medical.record.repository.MedicalRecordRepository;
 
-import feign.FeignException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -32,20 +31,14 @@ public class MedicalRecordService {
         if (!"DOCTOR".equals(userRole)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only doctors can create medical records");
         }
-        try {
-            if (patients.get(request.patientId()) == null) throw invalidReference();
-            AppointmentClient.AppointmentRef appointment = appointments.get(request.appointmentId());
-            if (appointment == null || !request.patientId().equals(appointment.patientId())
-                    || !request.doctorId().equals(appointment.doctorId())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Record does not match the appointment");
-            }
-            if (!"COMPLETED".equals(appointment.status())) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Appointment must be COMPLETED");
-            }
-        } catch (FeignException.NotFound e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Patient or appointment does not exist", e);
-        } catch (FeignException e) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Reference service unavailable", e);
+        if (patients.get(request.patientId()) == null) throw invalidReference();
+        AppointmentClient.AppointmentRef appointment = appointments.get(request.appointmentId());
+        if (appointment == null || !request.patientId().equals(appointment.patientId())
+                || !request.doctorId().equals(appointment.doctorId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Record does not match the appointment");
+        }
+        if (!"COMPLETED".equals(appointment.status())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Appointment must be COMPLETED");
         }
         if (repository.existsByAppointmentId(request.appointmentId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Medical record already exists for appointment");
@@ -78,14 +71,9 @@ public class MedicalRecordService {
     private void checkRead(Long patientId, String userRole, Long userId) {
         if ("DOCTOR".equals(userRole) || "ADMIN".equals(userRole)) return;
         if ("PATIENT".equals(userRole) && userId != null) {
-            try {
-                PatientClient.PatientRef patient = patients.get(patientId);
-                if (patient != null && userId.equals(patient.userId())) return;
-            } catch (FeignException.NotFound e) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient not found with id " + patientId, e);
-            } catch (FeignException e) {
-                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Patient service unavailable", e);
-            }
+            PatientClient.PatientRef patient = patients.get(patientId);
+            if (patient == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Patient not found with id " + patientId);
+            if (userId.equals(patient.userId())) return;
         }
         throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access to this medical record is forbidden");
     }
