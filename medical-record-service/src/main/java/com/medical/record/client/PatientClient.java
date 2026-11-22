@@ -1,12 +1,15 @@
 package com.medical.record.client;
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.stereotype.Component;
 
-@FeignClient(name = "patient-service")
-public interface PatientClient {
-    @GetMapping("/patients/{id}")
-    PatientRef get(@PathVariable("id") Long id);
-    record PatientRef(Long id, Long userId) {}
+@Component
+public class PatientClient {
+    private final KafkaLookupClient lookups;
+    public PatientClient(KafkaLookupClient lookups) { this.lookups = lookups; }
+    public PatientRef get(Long id) {
+        JsonNode result = lookups.lookup("patient.lookup.requests", id);
+        return result.path("found").asBoolean() ? new PatientRef(id, result.path("userId").asLong()) : null;
+    }
+    public record PatientRef(Long id, Long userId) {}
 }

@@ -1,12 +1,15 @@
 package com.medical.appointment.client;
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import com.fasterxml.jackson.databind.JsonNode;
+import org.springframework.stereotype.Component;
 
-@FeignClient(name = "doctor-service")
-public interface DoctorClient {
-    @GetMapping("/doctors/{id}")
-    DoctorRef get(@PathVariable("id") Long id);
-    record DoctorRef(Long id, String availableDays) {}
+@Component
+public class DoctorClient {
+    private final KafkaLookupClient lookups;
+    public DoctorClient(KafkaLookupClient lookups) { this.lookups = lookups; }
+    public DoctorRef get(Long id) {
+        JsonNode result = lookups.lookup("doctor.lookup.requests", id);
+        return result.path("found").asBoolean() ? new DoctorRef(id, result.path("availableDays").asText()) : null;
+    }
+    public record DoctorRef(Long id, String availableDays) {}
 }

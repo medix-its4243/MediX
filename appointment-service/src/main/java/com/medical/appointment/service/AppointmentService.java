@@ -8,7 +8,6 @@ import com.medical.appointment.entity.Appointment;
 import com.medical.appointment.entity.AppointmentStatus;
 import com.medical.appointment.repository.AppointmentRepository;
 
-import feign.FeignException;
 import jakarta.persistence.EntityManager;
 import java.util.List;
 import java.util.Locale;
@@ -37,20 +36,14 @@ public class AppointmentService {
         if (!request.startTime().isBefore(request.endTime())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startTime must be before endTime");
         }
-        try {
-            if (patients.get(request.patientId()) == null) throw invalidReference("Patient");
-            DoctorClient.DoctorRef doctor = doctors.get(request.doctorId());
-            if (doctor == null) throw invalidReference("Doctor");
-            String day = request.date().getDayOfWeek().name().substring(0, 3);
-            if (doctor.availableDays() == null ||
-                    !List.of(doctor.availableDays().toUpperCase(Locale.ROOT).split(",")).stream()
-                            .map(String::trim).anyMatch(day::equals)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Doctor is unavailable on this day");
-            }
-        } catch (FeignException.NotFound e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Patient or doctor does not exist", e);
-        } catch (FeignException e) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Reference service unavailable", e);
+        if (patients.get(request.patientId()) == null) throw invalidReference("Patient");
+        DoctorClient.DoctorRef doctor = doctors.get(request.doctorId());
+        if (doctor == null) throw invalidReference("Doctor");
+        String day = request.date().getDayOfWeek().name().substring(0, 3);
+        if (doctor.availableDays() == null ||
+                !List.of(doctor.availableDays().toUpperCase(Locale.ROOT).split(",")).stream()
+                        .map(String::trim).anyMatch(day::equals)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Doctor is unavailable on this day");
         }
         // Serialize bookings for one doctor on one day, including when no appointments exist yet.
         long lockKey = Long.rotateLeft(request.doctorId(), 32) ^ request.date().toEpochDay();
