@@ -1,6 +1,10 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/appointment_db
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/medical_db?currentSchema=appointment
+  jpa:
+    properties:
+      hibernate:
+        default_schema: appointment
   sql:
     init:
       mode: always

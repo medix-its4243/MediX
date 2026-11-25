@@ -44,7 +44,7 @@ public class GatewaySecurityConfig {
 
     @Bean
     SecurityWebFilterChain security(ServerHttpSecurity http, ReactiveJwtDecoder decoder,
-                                    @Value("${ALLOWED_ORIGINS:http://localhost:3000}") String origins) {
+                                    @Value("${ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}") String origins) {
         CorsConfiguration cors = new CorsConfiguration();
         cors.setAllowedOrigins(Arrays.stream(origins.split(",")).map(String::trim).toList());
         cors.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
