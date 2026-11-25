@@ -21,21 +21,22 @@ class ConfigServerApplicationTest {
 
     @ParameterizedTest
     @CsvSource({
-            "auth-service,auth_db",
-            "patient-service,patient_db",
-            "doctor-service,doctor_db",
-            "appointment-service,appointment_db",
-            "medical-record-service,record_db",
-            "billing-service,billing_db"
+            "auth-service,auth",
+            "patient-service,patient",
+            "doctor-service,doctor",
+            "appointment-service,appointment",
+            "medical-record-service,record",
+            "billing-service,billing"
     })
-    void servesDatabaseConfiguration(String service, String database) throws Exception {
+    void servesDatabaseConfiguration(String service, String schema) throws Exception {
         String body = http.getForObject("http://localhost:" + port + "/" + service + "/default", String.class);
         JsonNode response = json.readTree(body);
         Map<String, String> properties = new java.util.HashMap<>();
         for (JsonNode source : response.path("propertySources")) {
             source.path("source").properties().forEach(entry -> properties.putIfAbsent(entry.getKey(), entry.getValue().asText()));
         }
-        assertTrue(properties.get("spring.datasource.url").endsWith("/" + database));
+        assertTrue(properties.get("spring.datasource.url").endsWith("/medical_db?currentSchema=" + schema));
+        assertEquals(schema, properties.get("spring.jpa.properties.hibernate.default_schema"));
         assertTrue(properties.containsKey("spring.datasource.username"));
         assertTrue(properties.containsKey("spring.datasource.password"));
         assertEquals("validate", properties.get("spring.jpa.hibernate.ddl-auto"));

@@ -1,6 +1,10 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/patient_db
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/medical_db?currentSchema=patient
+  jpa:
+    properties:
+      hibernate:
+        default_schema: patient
   sql:
     init:
       mode: always

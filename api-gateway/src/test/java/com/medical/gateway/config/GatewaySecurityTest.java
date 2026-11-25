@@ -40,6 +40,16 @@ class GatewaySecurityTest {
                 .exchange().expectStatus().isUnauthorized();
     }
 
+    @Test
+    void allowsViteRegistrationPreflight() {
+        web.options().uri("/auth/register")
+                .header("Origin", "http://localhost:5173")
+                .header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", "content-type")
+                .exchange().expectStatus().isOk()
+                .expectHeader().valueEquals("Access-Control-Allow-Origin", "http://localhost:5173");
+    }
+
     private String token(String role, String type) {
         byte[] bytes = "test-only-32-byte-secret-key-for-jwt-signing".getBytes(StandardCharsets.UTF_8);
         var encoder = new NimbusJwtEncoder(new ImmutableSecret<>(new SecretKeySpec(bytes, "HmacSHA256")));

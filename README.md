@@ -7,14 +7,16 @@ Spring Boot microservice project based on the Medical Management System project 
 | `config-server` | 8888 | — | Centralized service configuration |
 | `eureka-server` | 8761 | — | Service discovery |
 | `api-gateway` | 8080 | — | Routes requests |
-| `auth-service` | 8081 | `auth_db` | Startup scaffold |
-| `patient-service` | 8082 | `patient_db` | Patient CRUD |
-| `doctor-service` | 8083 | `doctor_db` | Doctor CRUD, specialization search, availability and fees |
-| `appointment-service` | 8084 | `appointment_db` | Booking, lookup, cancel, complete |
-| `medical-record-service` | 8085 | `record_db` | Create and view records |
-| `billing-service` | 8086 | `billing_db` | Invoice generation, ownership checks and simulated payments |
+| `auth-service` | 8081 | `medical_db.auth` | Startup scaffold |
+| `patient-service` | 8082 | `medical_db.patient` | Patient CRUD |
+| `doctor-service` | 8083 | `medical_db.doctor` | Doctor CRUD, specialization search, availability and fees |
+| `appointment-service` | 8084 | `medical_db.appointment` | Booking, lookup, cancel, complete |
+| `medical-record-service` | 8085 | `medical_db.record` | Create and view records |
+| `billing-service` | 8086 | `medical_db.billing` | Invoice generation, ownership checks and simulated payments |
 
 ## Build and run
+
+The React frontend lives in the sibling `MediX-frontend` project. Start this backend with `docker compose up -d --build`, then start the frontend from `../MediX-frontend` with its own `docker compose up -d --build`. The frontend is available at `http://localhost:3000` and connects to this backend gateway on port 8080.
 
 Requirements: Java 21, Maven 3.9, PostgreSQL 16, and Kafka; or Docker and Docker Compose for the full stack.
 
@@ -23,7 +25,7 @@ mvn test
 docker compose up --build
 ```
 
-The gateway is available at `http://localhost:8080`. The PostgreSQL initialization script creates the six databases and the local `medical` account. The patient, doctor, appointment, and medical record services create their own tables from `schema.sql` on startup and then validate the JPA mappings. For local runs outside Docker, set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `EUREKA_URL` as needed. Start PostgreSQL, the Config Server, and Eureka before the domain services, then start the gateway.
+The gateway is available at `http://localhost:8080`. PostgreSQL creates one `medical_db` database; its initialization script creates six service schemas and the local `medical` account. Each database service creates its tables from `schema.sql` in its own schema on startup and then validates the JPA mappings. For local runs outside Docker, set `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, and `EUREKA_URL` as needed. Start PostgreSQL, the Config Server, and Eureka before the domain services, then start the gateway.
 
 Kafka is available at `localhost:29092` from the host and `kafka:9092` inside Compose. Set `KAFKA_BOOTSTRAP_SERVERS` for local service runs (default `localhost:9092`). Start Kafka before the patient, doctor, appointment, and medical record services.
 
